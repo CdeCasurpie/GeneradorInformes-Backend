@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Document Analyzer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.7/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        .file-input {
+            margin-bottom: 10px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #response {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .success {
+            background: #e8f5e9;
+            border: 1px solid #a5d6a7;
+        }
+        .error {
+            background: #ffebee;
+            border: 1px solid #ffcdd2;
+        }
+        .loading {
+            display: none;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Document Analyzer</h1>
+        
+        <div class="form-group">
+            <label for="template">Archivo de Plantilla (PDF):</label>
+            <input type="file" id="template" accept=".pdf" class="file-input">
+            
+            <label for="knowledge">Archivo de Conocimiento (PDF):</label>
+            <input type="file" id="knowledge" accept=".pdf" class="file-input">
+            
+            <button onclick="uploadFiles()">Enviar Archivos</button>
+        </div>
+
+        <div class="loading" id="loading">
+            Procesando archivos...
+        </div>
+
+        <div id="response">
+            Los resultados aparecerán aquí...
+        </div>
+    </div>
+
+    <script>
+        async function uploadFiles() {
+            const templateFile = document.getElementById('template').files[0];
+            const knowledgeFile = document.getElementById('knowledge').files[0];
+            const responseDiv = document.getElementById('response');
+            const loadingDiv = document.getElementById('loading');
+
+            if (!templateFile || !knowledgeFile) {
+                responseDiv.className = 'error';
+                responseDiv.textContent = 'Por favor, selecciona ambos archivos.';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('template_file', templateFile);
+            formData.append('knowledge_file', knowledgeFile);
+
+            try {
+                loadingDiv.style.display = 'block';
+                responseDiv.textContent = '';
+
+                const response = await axios.post('http://127.0.0.1:5000/api/v1/document/analyze', 
+                    formData,
+                    {
+                        headers: {
+                            'Content-Type': 'multipart/form-data'
+                        }
+                    }
+                );
+
+                responseDiv.className = 'success';
+                responseDiv.textContent = JSON.stringify(response.data, null, 2);
+            } catch (error) {
+                responseDiv.className = 'error';
+                responseDiv.textContent = error.response?.data?.error || error.message;
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

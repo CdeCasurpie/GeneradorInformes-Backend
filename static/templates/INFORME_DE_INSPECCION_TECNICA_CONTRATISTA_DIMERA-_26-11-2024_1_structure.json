@@ -1,0 +1,32 @@
+{
+  "document": {
+    "titulo": "",
+    "datosGenerales": {
+      "fechaInspeccion": "",
+      "nombreContrata": "",
+      "preparadoPor": ""
+    },
+    "resumen": {
+      "observaciones": [
+        {
+          "tecnico": "",
+          "observacion": ""
+        }
+      ]
+    },
+    "historialRiesgosYProblemas": {
+      "inspeccionesRealizadas": [
+        {
+          "fecha": ""
+        }
+      ]
+    },
+    "conclusionesRecomendaciones": [
+      ""
+    ],
+    "firma": {
+      "nombreSupervisor": "",
+      "tituloSupervisor": ""
+    }
+  }
+}

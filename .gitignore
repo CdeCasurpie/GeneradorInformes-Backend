@@ -1,0 +1,5 @@
+# venv for flask
+venv/
+
+/venv
+./venv

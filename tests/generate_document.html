@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Document Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.7/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 20px;
+        }
+        .editor-section {
+            flex: 1;
+        }
+        .preview-section {
+            flex: 1;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        #jsonInput {
+            width: 100%;
+            height: 500px;
+            font-family: monospace;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #response {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            border: 1px solid #ccc;
+            height: 500px;
+            overflow: auto;
+        }
+        .success {
+            background: #e8f5e9;
+            border: 1px solid #a5d6a7 !important;
+        }
+        .error {
+            background: #ffebee;
+            border: 1px solid #ffcdd2 !important;
+        }
+        .loading {
+            display: none;
+            margin: 20px 0;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="editor-section">
+            <h1>Test Document Generator</h1>
+            
+            <div class="form-group">
+                <label for="jsonInput">JSON Data:</label>
+                <div class="button-container">
+                    <button onclick="loadSampleData()">Cargar Ejemplo</button>
+                    <button onclick="formatJSON()">Formatear JSON</button>
+                    <button onclick="validateJSON()">Validar JSON</button>
+                </div>
+                <textarea id="jsonInput" spellcheck="false"></textarea>
+                
+                <button onclick="generateDocument()">Generar Documento</button>
+            </div>
+        </div>
+
+        <div class="preview-section">
+            <h2>Respuesta</h2>
+            <div class="loading" id="loading">
+                Procesando...
+            </div>
+            <div id="response">
+                La respuesta aparecerá aquí...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function loadSampleData() {
+            const sampleData = {
+                "form_data": {
+                    "document": {
+                        "title": "Informe de Inspección",
+                        "date": "2024-01-05",
+                        "prepared_by": "Juan Pérez",
+                        "company": "TechCorp",
+                        "general_data": {
+                            "inspection_date": "2024-01-05",
+                            "contractor_name": "Servicios Técnicos S.A."
+                        },
+                        "summary": [
+                            {
+                                "technician_name": "Carlos Rodríguez",
+                                "observations": [
+                                    {
+                                        "item": "Equipos de seguridad",
+                                        "condition": "Buena",
+                                        "image": "data:image/png;base64,iVBORw0KGgoAAAANSU...",
+                                        "description": "Todos los equipos en buen estado"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "template_path": "/static/templates/template.md",
+                "structure_path": "/static/templates/structure.json"
+            };
+            
+            document.getElementById('jsonInput').value = JSON.stringify(sampleData, null, 2);
+        }
+
+        function formatJSON() {
+            const input = document.getElementById('jsonInput');
+            try {
+                const formatted = JSON.stringify(JSON.parse(input.value), null, 2);
+                input.value = formatted;
+                input.classList.remove('error');
+            } catch (e) {
+                input.classList.add('error');
+                alert('JSON inválido: ' + e.message);
+            }
+        }
+
+        function validateJSON() {
+            const input = document.getElementById('jsonInput');
+            try {
+                JSON.parse(input.value);
+                input.classList.remove('error');
+                alert('JSON válido');
+            } catch (e) {
+                input.classList.add('error');
+                alert('JSON inválido: ' + e.message);
+            }
+        }
+
+        async function generateDocument() {
+            const jsonInput = document.getElementById('jsonInput');
+            const responseDiv = document.getElementById('response');
+            const loadingDiv = document.getElementById('loading');
+
+            try {
+                // Validar JSON
+                const jsonData = JSON.parse(jsonInput.value);
+                
+                loadingDiv.style.display = 'block';
+                responseDiv.textContent = '';
+
+                const response = await axios.post(
+                    'http://127.0.0.1:5000/api/v1/document/generate', 
+                    jsonData,
+                    {
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+
+                responseDiv.className = 'success';
+                responseDiv.textContent = JSON.stringify(response.data, null, 2);
+            } catch (error) {
+                responseDiv.className = 'error';
+                responseDiv.textContent = error.response?.data?.error || error.message;
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
