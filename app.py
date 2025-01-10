@@ -162,8 +162,11 @@ def generate_document():
         
         # 4. Reemplazar rutas de imágenes con URLs completas
         markdown_content = fix_image_paths(markdown_content)
+
+        # 5. Eliminar espacios en blanco de más
+        markdown_content = eliminate_white_spaces(markdown_content)
         
-        # 5. Guardar el markdown
+        # 6. Guardar el markdown
         output_path = OUTPUT_FOLDER / f'output_{uuid.uuid4()}.md'
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(markdown_content)
@@ -191,6 +194,18 @@ def fix_image_paths(markdown_content):
 
     # Reemplazar todas las coincidencias
     return re.sub(pattern, replace_path, markdown_content)
+
+
+def eliminate_white_spaces(markdown_content):
+    """
+    Elimina espacios en blanco de más en el markdown
+    """
+
+    # no pueden haber saltos de linea vacios
+    pattern = r'\n{2,}' # 2 o más saltos de linea
+    return re.sub(pattern, '\n', markdown_content)
+
+
 
 def analyze_all_images(data):
     """
