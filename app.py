@@ -161,8 +161,7 @@ def generate_document():
         markdown_content = convert_json_to_md(analyzed_data, template)
         
         # 4. Reemplazar rutas de imágenes con URLs completas
-        while (markdown_content != (eliminate_white_spaces(markdown_content))):
-            markdown_content = eliminate_white_spaces(markdown_content)
+        markdown_content = fix_image_paths(markdown_content)
 
         # 5. Eliminar espacios en blanco de más
         markdown_content = eliminate_white_spaces(markdown_content)
@@ -185,16 +184,9 @@ def fix_image_paths(markdown_content):
     """
     Reemplaza las rutas relativas de imágenes con URLs completas en las etiquetas <img src="...">
     """
-    # Patrón para encontrar imágenes con <img src="ruta">
-    pattern = r'<img src="(static/.*?)"'
-    
-    # Función de reemplazo que añade el dominio
-    def replace_path(match):
-        image_path = match.group(1)
-        return f'<img src="{SERVER_URL}/{image_path}"'
-
-    # Reemplazar todas las coincidencias
-    return re.sub(pattern, replace_path, markdown_content)
+    #reemplazar todos los /static por la url del servidor /static
+    markdown_content = markdown_content.replace('/static', SERVER_URL + '/static')
+    return markdown_content
 
 
 def eliminate_white_spaces(markdown_content):
@@ -203,7 +195,7 @@ def eliminate_white_spaces(markdown_content):
     """
 
     # no pueden haber saltos de linea vacios
-    pattern = r'\n{2,}' # 2 o más saltos de linea
+    pattern = r'\n{3,}' # 2 o más saltos de linea
     return re.sub(pattern, '\n', markdown_content)
 
 
