@@ -164,7 +164,8 @@ def generate_document():
         markdown_content = convert_json_to_md(analyzed_data, template)
         
         # 4. Reemplazar rutas de imágenes con URLs completas
-        markdown_content = fix_image_paths(markdown_content)
+        while (markdown_content != (eliminate_white_spaces(markdown_content))):
+            markdown_content = eliminate_white_spaces(markdown_content)
 
         # 5. Eliminar espacios en blanco de más
         markdown_content = eliminate_white_spaces(markdown_content)
