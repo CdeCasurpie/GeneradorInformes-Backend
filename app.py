@@ -176,19 +176,19 @@ def generate_document():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
 def fix_image_paths(markdown_content):
     """
-    Reemplaza las rutas relativas de imágenes con URLs completas
+    Reemplaza las rutas relativas de imágenes con URLs completas en las etiquetas <img src="...">
     """
-    # Patrón para encontrar imágenes en markdown: ![texto](ruta)
-    pattern = r'!\[(.*?)\]\((static/.*?)\)'
+    # Patrón para encontrar imágenes con <img src="ruta">
+    pattern = r'<img src="(static/.*?)"'
     
     # Función de reemplazo que añade el dominio
     def replace_path(match):
-        alt_text = match.group(1)
-        image_path = match.group(2)
-        return f'![{alt_text}]({SERVER_URL}/{image_path})'
-    
+        image_path = match.group(1)
+        return f'<img src="{SERVER_URL}/{image_path}"'
+
     # Reemplazar todas las coincidencias
     return re.sub(pattern, replace_path, markdown_content)
 
