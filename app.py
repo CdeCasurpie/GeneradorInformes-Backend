@@ -69,8 +69,9 @@ def analyze_document():
         # Analizar PDF y obtener estructura
         json_structure, markdown_template = analyze_pdf(str(template_path))
 
-        # Eliminar saltos de linea y espacios en blanco de más
-        markdown_template = eliminate_white_spaces(markdown_template)
+        # 4. Reemplazar rutas de imágenes con URLs completas
+        while (markdown_content != (eliminate_white_spaces(markdown_content))):
+            markdown_content = eliminate_white_spaces(markdown_content)
         
         # Guardar resultados
         template_filename = template_path.stem
