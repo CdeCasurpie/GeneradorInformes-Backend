@@ -11,6 +11,9 @@ from getStructureModule import analyze_pdf
 from singleImageModule import analyze_image
 from jsonToMd import convert_json_to_md
 
+from flask_sqlalchemy import SQLAlchemy
+from db_model import db, add_auth_routes, login_required, User
+from admin_routes import add_admin_routes, admin_required
 
 app = Flask(__name__, static_url_path='/static', static_folder='static')
 
@@ -18,11 +21,41 @@ app = Flask(__name__, static_url_path='/static', static_folder='static')
 CORS(app)
 
 
+# Database configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db.init_app(app)
+
+# Add authentication routes
+add_auth_routes(app)
+add_admin_routes(app)
+
+
+# Create database tables
+with app.app_context():
+    db.create_all()
+
+    admin_id = 1230908
+
+    # eliminar si existe el usuario admin
+    admin = User.query.filter_by(username='admin').first()
+
+    if admin:   
+        db.session.delete(admin)
+        db.session.commit()
+
+    admin = User(username='admin', is_admin=True, id=admin_id)
+    admin.set_password('741852963')
+    db.session.add(admin)
+    db.session.commit()
+
+
 # Configuración global
 SERVER_URL = "http://127.0.0.1:5000"    
 
 # Configuración de carpetas
 UPLOAD_FOLDER = Path("static/uploads")
+KNOWNLEDGE_FOLDER = Path("static/knowledge")
 TEMPLATES_FOLDER = Path("static/templates")
 IMAGES_FOLDER = Path("static/images")
 OUTPUT_FOLDER = Path("static/output")
@@ -40,6 +73,7 @@ def allowed_file(filename, allowed_extensions):
 
 
 @app.route('/api/v1/document/analyze', methods=['POST'])
+@login_required
 def analyze_document():
     """
     Analiza los archivos iniciales (plantilla y PDF de conocimiento)
@@ -58,21 +92,39 @@ def analyze_document():
             allowed_file(knowledge_file.filename, {'pdf'})):
         return jsonify({'error': 'Tipo de archivo no permitido'}), 400
     
+    print(f"Analizando archivos: {template_file.filename}, {knowledge_file.filename}")
+
     try:
         # Guardar archivos
         template_path = UPLOAD_FOLDER / secure_filename(template_file.filename)
-        knowledge_path = UPLOAD_FOLDER / secure_filename(knowledge_file.filename)
+
+        # obtener usuario con la cookie enviada, (es el id del usuario)
+        user_id = request.headers.get('Authorization')
+        user_id = user_id.split(' ')[1]
+        print(user_id)
+
+        # crear carpeta para knowledge
+        user_knowledge_folder = KNOWNLEDGE_FOLDER / user_id
+        user_knowledge_folder.mkdir(parents=True, exist_ok=True)
+
+        knowledge_path = user_knowledge_folder / secure_filename(knowledge_file.filename)
+
         
         template_file.save(template_path)
         knowledge_file.save(knowledge_path)
         
         # Analizar PDF y obtener estructura
-        json_structure, markdown_template = analyze_pdf(str(template_path))
+        json_structure, markdown_template = analyze_pdf(str(template_path), str(knowledge_path))
         
-        # Guardar resultados
+        # Guardar resultados en la carpeta templates con id del usuario
         template_filename = template_path.stem
-        structure_path = TEMPLATES_FOLDER / f"{template_filename}_structure.json"
-        md_path = TEMPLATES_FOLDER / f"{template_filename}.md"
+
+        user_template_folder = TEMPLATES_FOLDER / user_id
+        user_template_folder.mkdir(parents=True, exist_ok=True)
+
+        structure_path = user_template_folder / f"{template_filename}_structure.json"
+        md_path = user_template_folder / f"{template_filename}.md"
+
         
         # Guardar JSON y MD
         with open(structure_path, 'w', encoding='utf-8') as f:
@@ -83,7 +135,8 @@ def analyze_document():
         
         return jsonify({
             'template_path': str(md_path),
-            'structure_path': str(structure_path)
+            'structure_path': str(structure_path),
+            'knowledge_path': str(knowledge_path),
         })
         
     except Exception as e:
@@ -92,6 +145,69 @@ def analyze_document():
             if path.exists():
                 path.unlink()
         return jsonify({'error': str(e)}), 500
+
+
+
+
+#ruta para obtener la lista de kwoledges disponibles
+@app.route('/api/v1/knowledge', methods=['GET'])
+@login_required
+def get_knowledge():
+    """
+    Obtiene la lista de conocimientos disponibles
+    """
+
+    try: 
+        # obtener usuario con la cookie enviada, (es el id del usuario)
+        user_id = request.headers.get('Authorization')
+        user_id = user_id.split(' ')[1]
+
+        # entrar en la carpeta con el id del usuario
+        user_knowledge_folder = KNOWNLEDGE_FOLDER / user_id
+
+        # obtener todos los archivos de la carpeta
+        knowledge_files = [file.name for file in user_knowledge_folder.iterdir()]
+
+        return jsonify({
+            'success': True,
+            'knowledge_files': knowledge_files
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
+#ruta para obtener la lista de templates disponibles
+@app.route('/api/v1/template', methods=['GET'])
+@login_required
+def get_templates():
+    """
+    Obtiene la lista de plantillas disponibles
+    """
+
+    try: 
+        # obtener usuario con la cookie enviada, (es el id del usuario)
+        user_id = request.headers.get('Authorization')
+        user_id = user_id.split(' ')[1]
+
+        # entrar en la carpeta con el id del usuario
+        user_template_folder = TEMPLATES_FOLDER / user_id
+
+        # obtener todos los archivos de la carpeta
+        template_files = [file.name for file in user_template_folder.iterdir()]
+
+        #solo los que terminan en .md
+        template_files = [file for file in template_files if file.endswith('.md')]
+
+        return jsonify({
+            'success': True,
+            'template_files': template_files
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 
 import base64
 import uuid
@@ -135,14 +251,23 @@ def process_images(data):
     return data
 
 @app.route('/api/v1/document/generate', methods=['POST'])
+@login_required
 def generate_document():
     """
     Genera el documento markdown final con imágenes procesadas
     """
+    user_id = request.headers.get('Authorization')
+    user_id = user_id.split(' ')[1]
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({'error': 'Usuario no encontrado'}), 404
+
+
     try:
         data = request.get_json()
         
-        if not all(key in data for key in ['form_data', 'template_path', 'structure_path']):
+        if not all(key in data for key in ['form_data', 'template_path', 'structure_path', 'knowledge_path']):
             return jsonify({'error': 'Faltan campos requeridos'}), 400
             
         # 1. Procesar imágenes del form_data y guardarlas
@@ -162,12 +287,11 @@ def generate_document():
         
         # 4. Reemplazar rutas de imágenes con URLs completas
         markdown_content = fix_image_paths(markdown_content)
-
-        # 5. Eliminar espacios en blanco de más
-        markdown_content = eliminate_white_spaces(markdown_content)
         
-        # 6. Guardar el markdown
-        output_path = OUTPUT_FOLDER / f'output_{uuid.uuid4()}.md'
+        # 5. Guardar el markdown
+        
+
+        output_path = OUTPUT_FOLDER / f'output_{user.id}_{uuid.uuid4()}.md'
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(markdown_content)
         
@@ -184,20 +308,9 @@ def fix_image_paths(markdown_content):
     """
     Reemplaza las rutas relativas de imágenes con URLs completas en las etiquetas <img src="...">
     """
-    #reemplazar todos los /static por la url del servidor /static
-    markdown_content = markdown_content.replace('/static', SERVER_URL + '/static')
+    #reemplazar todos los static por la url del servidor /static
+    markdown_content = markdown_content.replace('static/', SERVER_URL + '/static/')
     return markdown_content
-
-
-def eliminate_white_spaces(markdown_content):
-    """
-    Elimina espacios en blanco de más en el markdown
-    """
-
-    # no pueden haber saltos de linea vacios
-    pattern = r'\n{3,}' # 2 o más saltos de linea
-    return re.sub(pattern, '\n', markdown_content)
-
 
 
 def analyze_all_images(data):

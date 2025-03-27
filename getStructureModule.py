@@ -3,19 +3,24 @@ import json
 
 client = OpenAI()
 
-def analyze_pdf(pdf_path: str):
-   # 1. Subir el PDF
-   message_file = client.files.create(
-       file=open(pdf_path, "rb"),
+def analyze_pdf(template_path: str, knowledge_path: str):
+   # 1. Subir ambos PDFs
+   template_file = client.files.create(
+       file=open(template_path, "rb"),
        purpose="assistants"
    )
    
-   # 2. Crear el thread y adjuntar el archivo
+   knowledge_file = client.files.create(
+       file=open(knowledge_path, "rb"),
+       purpose="assistants"
+   )
+   
+   # 2. Crear el thread y adjuntar los archivos
    thread = client.beta.threads.create(
        messages=[
            {
                "role": "user",
-               "content": """Analiza este PDF y proporciona dos elementos:
+               "content": """Analiza el PDF de template y proporciona dos elementos:
                1. Una estructura JSON vacía que represente el formato del documento
                2. Una plantilla Markdown que replique el estilo
 
@@ -25,7 +30,7 @@ def analyze_pdf(pdf_path: str):
                - Finalmente la plantilla Markdown con su CSS correspondiente""",
                "attachments": [
                    {
-                       "file_id": message_file.id,
+                       "file_id": template_file.id,
                        "tools": [{"type": "file_search"}]
                    }
                ]

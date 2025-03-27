@@ -3,14 +3,18 @@ import json
 
 client = OpenAI()
 
-def analyze_image(image_path, image_name, context_info):
-    # 1. Subir la imagen
-    file = client.files.create(
+def analyze_image(image_path, image_name, context_info, knowledge_pdf_path):
+    # Upload both the image and knowledge PDF
+    image_file = client.files.create(
         file=open(image_path, "rb"),
         purpose="vision"
     )
     
-    # 2. Crear el thread con el mensaje y la imagen
+    knowledge_file = client.files.create(
+        file=open(knowledge_pdf_path, "rb"),
+        purpose="assistants"
+    )
+    
     thread = client.beta.threads.create(
         messages=[
             {
@@ -20,14 +24,18 @@ def analyze_image(image_path, image_name, context_info):
                         "type": "text",
                         "text": f"""Context information: {context_info}
                         Image name: {image_name}
-                        Please analyze this image and provide a JSON with:
+                        Please analyze this image considering the knowledge from the PDF and provide a JSON with:
                         - description
                         - observations
                         - image_name"""
                     },
                     {
                         "type": "image_file",
-                        "image_file": {"file_id": file.id}
+                        "image_file": {"file_id": image_file.id}
+                    },
+                    {
+                        "type": "file",
+                        "file_id": knowledge_file.id
                     }
                 ]
             }

@@ -1,0 +1,14 @@
+{
+  "titulo": "",
+  "fecha_inspeccion": "",
+  "nombre_contratista": "",
+  "preparado_por": "",
+  "resumen": [
+    {
+      "tecnico": "",
+      "observacion": ""
+    }
+  ],
+  "historial_de_riesgos_y_problemas": "",
+  "conclusiones_recomendaciones": ""
+}

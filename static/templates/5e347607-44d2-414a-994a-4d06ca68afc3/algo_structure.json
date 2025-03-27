@@ -1,0 +1,33 @@
+{
+  "info_documento": {
+    "titulo": "INFORME DE INSPECCIÓN TÉCNICA"
+  },
+  "datos_generales": {
+    "fecha_inspeccion_date": "",
+    "nombre_contratista": "",
+    "preparado_por": ""
+  },
+  "resumen": {
+    "descripcion": "",
+    "tecnicos": [
+      {
+        "nombre": "",
+        "observaciones": ""
+      }
+    ]
+  },
+  "historial_riesgos_problemas": {
+    "riesgos": [
+      {
+        "fecha_inspeccion_date": "",
+        "descripcion": ""
+      }
+    ]
+  },
+  "conclusiones_recomendaciones": {
+    "descripcion": ""
+  },
+  "firma": {
+    "nombre": ""
+  }
+}
